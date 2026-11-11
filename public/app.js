@@ -1188,7 +1188,7 @@
         } else {
             const fronts  = new Set(state.items.map(function(i) { return i.front;  })).size;
             const sprints = new Set(state.items.map(function(i) { return i.sprint; })).size;
-            el.releaseMeta.textContent = 'Escopo atual: ' + scopeText + ' ÔÇó ' + state.items.length + ' itens em ' + fronts + ' frente(s) e ' + sprints + ' sprint(s).';
+            el.releaseMeta.textContent = 'Escopo atual: ' + scopeText + ' • ' + state.items.length + ' itens em ' + fronts + ' frente(s) e ' + sprints + ' sprint(s).';
         }
     }
 
@@ -2333,7 +2333,7 @@
                 '<div class="item-top">',
                 '  <div>',
                 '    <h3 class="item-title">' + escapeHtml(item.metadata_name) + '</h3>',
-                '    <div class="item-meta"><span>' + escapeHtml(item.front) + '</span><span>ÔÇó</span><span>' + escapeHtml(item.sprint) + '</span></div>',
+                '    <div class="item-meta"><span>' + escapeHtml(item.front) + '</span><span>•</span><span>' + escapeHtml(item.sprint) + '</span></div>',
                 '  </div>',
                 '  <div class="badges">',
                 '    <span class="badge">' + escapeHtml(item.metadata_type) + '</span>',
@@ -2342,7 +2342,7 @@
                 '</div>',
                 '<p class="item-description">' + escapeHtml(item.description) + '</p>',
                 '<div class="item-meta">',
-                '  <span>Ticket: ' + escapeHtml(item.ticket || '-') + '</span><span>ÔÇó</span>',
+                '  <span>Ticket: ' + escapeHtml(item.ticket || '-') + '</span><span>•</span>',
                 '  <span>' + escapeHtml(formatDateTime(item.created_at)) + '</span>',
                 '</div>',
                 // PRs

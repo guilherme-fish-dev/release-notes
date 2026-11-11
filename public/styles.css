@@ -452,6 +452,7 @@ button:hover {
 .item-description {
     margin: 0;
     line-height: 1.55;
+    white-space: pre-line;
 }
 
 .item-actions {
