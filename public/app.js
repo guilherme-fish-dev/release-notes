@@ -237,6 +237,8 @@
         ghStatusBadge: document.getElementById('gh-status-badge'),
         ghStatusText: document.getElementById('gh-status-text'),
         ghStatusPopover: document.getElementById('gh-status-popover'),
+        ghStatusMessage: document.getElementById('gh-status-message'),
+        btnGhLogin: document.getElementById('btn-gh-login'),
         // Form outros
         bulkMetadataRows: document.getElementById('bulk-metadata-rows'),
         bulkPrRows: document.getElementById('bulk-pr-rows'),
@@ -340,7 +342,7 @@
         localStorage.setItem('release_notes_theme', safeTheme);
 
         if (el.btnThemeToggle) {
-            el.btnThemeToggle.textContent = safeTheme === 'dark' ? '­ƒöª Tema claro' : '­ƒöª Tema escuro';
+            el.btnThemeToggle.textContent = safeTheme === 'dark' ? '🔦 Tema claro' : '🔦 Tema escuro';
             el.btnThemeToggle.setAttribute('aria-label', safeTheme === 'dark' ? 'Alternar para tema claro' : 'Alternar para tema escuro');
             el.btnThemeToggle.setAttribute('title', safeTheme === 'dark' ? 'Alternar para tema claro' : 'Alternar para tema escuro');
         }
@@ -465,9 +467,12 @@
             ? ('gh: ' + (status.username || 'conectado'))
             : 'gh: desconectado';
 
-        el.ghStatusPopover.innerHTML = connected
+        el.ghStatusMessage.innerHTML = connected
             ? ('Conectado como <strong>' + escapeHtml(status.username || '') + '</strong>. Para trocar de conta, rode <code>gh auth login</code> no terminal.')
-            : 'O gh (GitHub CLI) nao esta autenticado. Rode <code>gh auth login</code> no terminal para conectar e poder importar PRs.';
+            : 'O gh (GitHub CLI) nao esta autenticado.';
+
+        el.btnGhLogin.hidden = connected;
+        if (connected) stopGhLoginPolling();
     }
 
     async function loadGhStatus() {
@@ -479,9 +484,58 @@
         }
     }
 
+    let ghLoginPollTimer = null;
+
+    function stopGhLoginPolling() {
+        if (ghLoginPollTimer) {
+            clearInterval(ghLoginPollTimer);
+            ghLoginPollTimer = null;
+        }
+    }
+
+    function startGhLoginPolling() {
+        stopGhLoginPolling();
+        let attempts = 0;
+        ghLoginPollTimer = setInterval(async function() {
+            attempts += 1;
+            const status = await api.get('/api/gh-status').catch(function() { return { connected: false }; });
+            if (status.connected) {
+                renderGhStatus(status);
+                return;
+            }
+            if (attempts >= 40) {
+                stopGhLoginPolling();
+            }
+        }, 3000);
+    }
+
+    async function startGhLogin() {
+        el.btnGhLogin.disabled = true;
+        el.ghStatusMessage.textContent = 'Iniciando login...';
+        try {
+            const result = await api.post('/api/gh-login', {});
+            if (result.status === 'error') {
+                el.ghStatusMessage.textContent = 'Erro ao iniciar login: ' + (result.error || 'erro desconhecido');
+                return;
+            }
+            el.ghStatusMessage.innerHTML = result.code
+                ? ('Codigo: <strong>' + escapeHtml(result.code) + '</strong>. Confirme no navegador que abriu (ou acesse <code>github.com/login/device</code>).')
+                : 'Login iniciado. Verifique se uma janela do navegador abriu para confirmar.';
+            startGhLoginPolling();
+        } catch (e) {
+            el.ghStatusMessage.textContent = 'Erro ao iniciar login: ' + e.message;
+        } finally {
+            el.btnGhLogin.disabled = false;
+        }
+    }
+
     function initGhStatusBadge() {
         el.ghStatusBadge.addEventListener('click', function() {
             el.ghStatusPopover.hidden = !el.ghStatusPopover.hidden;
+        });
+        el.btnGhLogin.addEventListener('click', function(e) {
+            e.stopPropagation();
+            startGhLogin();
         });
         document.addEventListener('click', function(e) {
             if (el.ghStatusPopover.hidden) return;

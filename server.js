@@ -5,7 +5,7 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 const { promisify } = require('util');
 const {
     buildMetadataItemsFromFiles,
@@ -30,7 +30,8 @@ const {
     buildPrMetadataItems,
     parseGhFilesJsonLines,
     normalizeGhPrView,
-    parseGhAuthStatus
+    parseGhAuthStatus,
+    parseGhLoginCode
 } = require('./lib/pr-metadata');
 
 const execFileAsync = promisify(execFile);
@@ -1419,6 +1420,69 @@ app.post('/api/metadata-from-commits', async (req, res) => {
 
         res.status(500).json({ error: error?.message || 'Erro ao ler commits' });
     }
+});
+
+let ghLoginState = null; // { process, output }
+
+app.post('/api/gh-login', (req, res) => {
+    if (ghLoginState) {
+        return res.json({
+            status: 'in_progress',
+            code: parseGhLoginCode(ghLoginState.output)
+        });
+    }
+
+    let child;
+    try {
+        child = spawn('gh', ['auth', 'login', '--hostname', 'github.com', '--git-protocol', 'https', '--web'], {
+            windowsHide: true,
+            stdio: ['ignore', 'pipe', 'pipe']
+        });
+    } catch (error) {
+        return res.status(424).json({ error: "gh (GitHub CLI) nao encontrado. Instale o gh e tente novamente." });
+    }
+
+    const state = { process: child, output: '' };
+    ghLoginState = state;
+
+    child.stdout.on('data', (chunk) => { state.output += chunk.toString(); });
+    child.stderr.on('data', (chunk) => { state.output += chunk.toString(); });
+
+    child.on('error', () => {
+        if (ghLoginState === state) ghLoginState = null;
+    });
+    child.on('exit', () => {
+        if (ghLoginState === state) ghLoginState = null;
+    });
+
+    let responded = false;
+    const respondOnce = (payload) => {
+        if (responded) return;
+        responded = true;
+        res.json(payload);
+    };
+
+    const poll = setInterval(() => {
+        const code = parseGhLoginCode(state.output);
+        if (code) {
+            clearInterval(poll);
+            respondOnce({ status: 'started', code: code });
+        }
+    }, 300);
+
+    child.once('exit', (exitCode) => {
+        clearInterval(poll);
+        if (!responded) {
+            respondOnce(exitCode === 0
+                ? { status: 'started', code: null }
+                : { status: 'error', error: state.output.trim() || 'gh auth login encerrou com erro' });
+        }
+    });
+
+    setTimeout(() => {
+        clearInterval(poll);
+        respondOnce({ status: 'started', code: parseGhLoginCode(state.output) });
+    }, 5000);
 });
 
 app.get('/api/gh-status', async (req, res) => {

@@ -81,7 +81,7 @@ No fluxo `Incluir metadados`, alem da importacao por hash de commit, e possivel 
 
 ## Status do gh e layout do formulario
 
-- No topo da pagina, um selo mostra se o `gh` esta conectado (verde, com o usuario autenticado) ou desconectado (vermelho). Clique no selo para ver a orientacao de reconexao (`gh auth login`).
+- No topo da pagina, um selo mostra se o `gh` esta conectado (verde, com o usuario autenticado) ou desconectado (vermelho). Clique no selo para abrir um popover com a orientacao e, se desconectado, um botao "Conectar" que roda `gh auth login --web` em segundo plano, mostra o codigo de uso unico e abre o navegador para voce aprovar; o selo atualiza sozinho quando a conexao for concluida.
 - O formulario "Novo item de release" foi reorganizado em um acordeao com 4 etapas (Frente/Sprint, Importar metadados, Metadatas e PRs do lote, Ticket e descricao); so uma etapa fica aberta por vez, e a etapa de metadatas se abre automaticamente apos uma importacao bem-sucedida.
 - Importar por commit e por PR agora sao sub-abas dentro da etapa "Importar metadados", em vez de dois blocos sempre visiveis.
 - Cadastrar uma nova frente, sprint ou tipo de metadata abre um modal, separando a lista de selecao (lookup) do cadastro de um novo item.

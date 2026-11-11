@@ -10,7 +10,8 @@ const {
     buildPrMetadataItems,
     parseGhFilesJsonLines,
     normalizeGhPrView,
-    parseGhAuthStatus
+    parseGhAuthStatus,
+    parseGhLoginCode
 } = require('../lib/pr-metadata');
 
 test('parsePrReference extracts owner/repo/number from a PR url', function() {
@@ -175,6 +176,16 @@ test('parseGhAuthStatus reports disconnected when gh is not authenticated', func
 
 test('parseGhAuthStatus reports disconnected for empty output', function() {
     assert.deepEqual(parseGhAuthStatus(''), { connected: false, username: null });
+});
+
+test('parseGhLoginCode extracts the one-time device code from mocked gh auth login output', function() {
+    const output = '! First copy your one-time code: 1A2B-3C4D\nPress Enter to open github.com in your browser...\n';
+    assert.equal(parseGhLoginCode(output), '1A2B-3C4D');
+});
+
+test('parseGhLoginCode returns null when no code is present', function() {
+    assert.equal(parseGhLoginCode('some other gh output'), null);
+    assert.equal(parseGhLoginCode(''), null);
 });
 
 test('normalizeGhPrView maps mocked gh pr view --json output to the PR contract shape', function() {

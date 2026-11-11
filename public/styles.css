@@ -163,6 +163,14 @@ body::before {
     display: none;
 }
 
+.gh-status-popover p {
+    margin: 0 0 10px;
+}
+
+.gh-status-popover .btn-sm {
+    width: 100%;
+}
+
 .gh-status-popover code {
     background: var(--card-soft);
     border-radius: 6px;
