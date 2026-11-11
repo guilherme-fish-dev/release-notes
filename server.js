@@ -22,6 +22,16 @@ const {
     validateTargetBranches,
     extractOrgRepoFromRemote
 } = require('./lib/pr-discovery');
+const {
+    parsePrReference,
+    derivePrLabelFromBranch,
+    extractTicketInfo,
+    extractWhatSection,
+    buildPrMetadataItems,
+    parseGhFilesJsonLines,
+    normalizeGhPrView,
+    parseGhAuthStatus
+} = require('./lib/pr-metadata');
 
 const execFileAsync = promisify(execFile);
 
@@ -405,6 +415,33 @@ function runGit(repoPath, args) {
         windowsHide: true,
         maxBuffer: 10 * 1024 * 1024
     });
+}
+
+const GH_TIMEOUT_MS = 30000;
+
+function runGh(args) {
+    return execFileAsync('gh', args, {
+        windowsHide: true,
+        maxBuffer: 10 * 1024 * 1024,
+        timeout: GH_TIMEOUT_MS
+    });
+}
+
+function ghUnavailableError(error) {
+    if (error && error.code === 'ENOENT') {
+        const err = new Error("gh (GitHub CLI) nao encontrado. Instale o gh e rode 'gh auth login'.");
+        err.status = 424;
+        return err;
+    }
+
+    const stderr = String(error?.stderr || '');
+    if (/auth login|not logged into|authentication/i.test(stderr)) {
+        const err = new Error("gh nao esta autenticado. Rode 'gh auth login'.");
+        err.status = 424;
+        return err;
+    }
+
+    return null;
 }
 
 function assertValidRepoPath(repoPath) {
@@ -1052,6 +1089,70 @@ async function readMultipleCommitMetadata(repoPath, commitHashes) {
     };
 }
 
+async function fetchPrMetadata(ref) {
+    const repoFullName = ref.owner + '/' + ref.repo;
+
+    let viewResult;
+    try {
+        viewResult = await runGh([
+            'pr', 'view', String(ref.number),
+            '--repo', repoFullName,
+            '--json', 'number,url,title,baseRefName,headRefName,state,mergedAt,body'
+        ]);
+    } catch (error) {
+        const ghError = ghUnavailableError(error);
+        if (ghError) throw ghError;
+
+        const stderr = String(error?.stderr || '').trim();
+        if (/could not resolve|not found|no pull requests found/i.test(stderr)) {
+            const err = new Error('PR nao encontrada ou sem acesso');
+            err.status = 404;
+            throw err;
+        }
+
+        const err = new Error(stderr || error?.message || 'Erro ao consultar PR no gh');
+        err.status = 500;
+        throw err;
+    }
+
+    const pr = normalizeGhPrView(viewResult.stdout);
+
+    let filesResult;
+    try {
+        filesResult = await runGh([
+            'api', `repos/${repoFullName}/pulls/${ref.number}/files`,
+            '--paginate',
+            '--jq', '.[] | {filename, status, previous_filename}'
+        ]);
+    } catch (error) {
+        const ghError = ghUnavailableError(error);
+        if (ghError) throw ghError;
+
+        const stderr = String(error?.stderr || '').trim();
+        const err = new Error(stderr || error?.message || 'Erro ao buscar arquivos da PR no gh');
+        err.status = 500;
+        throw err;
+    }
+
+    const files = parseGhFilesJsonLines(filesResult.stdout);
+    const { metadatas, ignored_files } = buildPrMetadataItems(files, extractMetadataName);
+
+    const ticketInfo = extractTicketInfo([pr.title, pr.head]);
+    const whatSection = extractWhatSection(pr.body);
+
+    return {
+        pr: pr,
+        suggested: {
+            ticket: ticketInfo.ticket,
+            ticket_candidates: ticketInfo.candidates,
+            pr_label: derivePrLabelFromBranch(pr.base),
+            description: whatSection || pr.title
+        },
+        metadatas: metadatas,
+        ignored_files: ignored_files
+    };
+}
+
 migrateLegacyMetadataNames();
 consolidateDuplicateMetadatas();
 consolidateDuplicatePullRequests();
@@ -1317,6 +1418,62 @@ app.post('/api/metadata-from-commits', async (req, res) => {
         }
 
         res.status(500).json({ error: error?.message || 'Erro ao ler commits' });
+    }
+});
+
+app.get('/api/gh-status', async (req, res) => {
+    try {
+        const { stdout, stderr } = await runGh(['auth', 'status']);
+        return res.json(parseGhAuthStatus(String(stdout || '') + '\n' + String(stderr || '')));
+    } catch (error) {
+        if (error && error.code === 'ENOENT') {
+            return res.json({ connected: false, username: null });
+        }
+        const text = String(error?.stdout || '') + '\n' + String(error?.stderr || '');
+        return res.json(parseGhAuthStatus(text));
+    }
+});
+
+app.post('/api/metadata-from-pr', async (req, res) => {
+    try {
+        const prUrl = req.body?.pr_url;
+        const prNumber = req.body?.pr_number;
+        const repoId = req.body?.repo_id;
+
+        let ref = null;
+        if (prUrl) {
+            ref = parsePrReference(prUrl, '');
+        } else if (prNumber != null && repoId != null) {
+            const safeRepoId = parsePositiveInt(repoId);
+            if (!safeRepoId) return res.status(400).json({ error: 'repo_id invalido' });
+
+            const repo = db.prepare('SELECT * FROM repos WHERE id = ?').get(safeRepoId);
+            if (!repo) return res.status(400).json({ error: 'repo nao encontrado' });
+
+            const repoPath = assertValidRepoPath(repo.repo_path);
+            const { stdout: remoteOut } = await runGit(repoPath, ['remote', 'get-url', 'origin']);
+            const defaultRepo = extractOrgRepoFromRemote(remoteOut) || '';
+            ref = parsePrReference(String(prNumber), defaultRepo);
+        }
+
+        if (!ref) {
+            return res.status(400).json({ error: 'Informe pr_url, ou repo_id + pr_number, validos' });
+        }
+
+        const payload = await fetchPrMetadata(ref);
+
+        const existingLink = db.prepare('SELECT metadata_id FROM pull_requests WHERE url = ?').get(payload.pr.url);
+        if (existingLink) {
+            payload.already_imported = true;
+            payload.already_imported_metadata_id = existingLink.metadata_id;
+        }
+
+        res.json(payload);
+    } catch (error) {
+        if (error && Number.isInteger(error.status)) {
+            return res.status(error.status).json({ error: error.message });
+        }
+        res.status(500).json({ error: error?.message || 'Erro ao importar PR' });
     }
 });
 
