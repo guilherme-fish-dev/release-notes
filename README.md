@@ -48,6 +48,7 @@ Na aba `Busca por commit`, e possivel selecionar mais de uma pessoa salva e cons
 - Usar `Selecionar todos` e `Limpar selecao` na grade de resultados
 - Acionar `Usar todos` para importar todos os commits encontrados
 - Acionar `Usar selecionados` para importar apenas os commits marcados
+- Acionar `Gerar cherry-pick selecionados` para montar o comando com os hashes marcados
 
 O fluxo continua compatível com a busca por uma unica pessoa e com o atalho `Usar commit` de cada linha.
 
@@ -65,3 +66,22 @@ No fluxo `Busca por commit`, tambem e possivel:
 - Selecionar varios commits na grade (checkbox por linha)
 - Usar `Selecionar todos` e `Limpar selecao`
 - Acionar `Usar selecionados` para importar tudo em lote no modulo de metadados
+
+## Importacao de metadados por PR
+
+No fluxo `Incluir metadados`, alem da importacao por hash de commit, e possivel importar a partir de uma PR:
+
+- Cole o link da PR (ex.: `https://github.com/org/repo/pull/8978`) no campo `Importar metadados por PR` e clique em `Buscar PR`.
+- Ou escolha um repositorio salvo no seletor ao lado e digite apenas o numero da PR.
+- O app usa o `gh` (GitHub CLI), ja autenticado na maquina, para buscar os arquivos da PR via `execFile` (sem shell e sem guardar token).
+- Sao preenchidos automaticamente: a lista de metadatas `force-app/**` (com tipo de mudanca Criacao/Alteracao/Remocao), o ticket (padrao `ABC-123` no titulo ou na branch), o label e link da PR (Forno/Staging/Producao conforme a branch base) e uma descricao sugerida a partir da secao `## What` do corpo da PR.
+- Arquivos fora de `force-app/` sao ignorados e informados no aviso ao final da busca.
+- Se o `gh` nao estiver instalado ou autenticado, o app orienta a rodar `gh auth login`; o fluxo por hash de commit continua funcionando normalmente.
+- Se a PR ja estiver vinculada a um metadata cadastrado, um aviso e exibido antes de importar novamente.
+
+## Status do gh e layout do formulario
+
+- No topo da pagina, um selo mostra se o `gh` esta conectado (verde, com o usuario autenticado) ou desconectado (vermelho). Clique no selo para abrir um popover com a orientacao e, se desconectado, um botao "Conectar" que roda `gh auth login --web` em segundo plano, mostra o codigo de uso unico e abre o navegador para voce aprovar; o selo atualiza sozinho quando a conexao for concluida.
+- O formulario "Novo item de release" foi reorganizado em um acordeao com 4 etapas (Frente/Sprint, Importar metadados, Metadatas e PRs do lote, Ticket e descricao); so uma etapa fica aberta por vez, e a etapa de metadatas se abre automaticamente apos uma importacao bem-sucedida.
+- Importar por commit e por PR agora sao sub-abas dentro da etapa "Importar metadados", em vez de dois blocos sempre visiveis.
+- Cadastrar uma nova frente, sprint ou tipo de metadata abre um modal, separando a lista de selecao (lookup) do cadastro de um novo item.

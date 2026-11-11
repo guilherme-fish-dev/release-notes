@@ -14,9 +14,19 @@
         <header class="hero">
             <div class="hero-top">
                 <p class="eyebrow">Operacoes de entrega</p>
-                <button id="btn-theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema" title="Alternar tema">
-                    🔦 Tema escuro
-                </button>
+                <div class="hero-top-actions">
+                    <button id="gh-status-badge" class="gh-status-badge is-unknown" type="button" title="Status do gh">
+                        <span class="gh-status-dot" aria-hidden="true"></span>
+                        <span id="gh-status-text">gh: verificando...</span>
+                    </button>
+                    <div id="gh-status-popover" class="gh-status-popover" hidden>
+                        <p id="gh-status-message"></p>
+                        <button type="button" id="btn-gh-login" class="btn-secondary btn-sm" hidden>Conectar</button>
+                    </div>
+                    <button id="btn-theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema" title="Alternar tema">
+                        🔦 Tema escuro
+                    </button>
+                </div>
             </div>
             <h1>Gerador de release notes</h1>
             <p class="hero-copy">
@@ -41,83 +51,124 @@
                 </div>
 
                 <form id="metadata-form" novalidate autocomplete="off">
-                    <div class="form-grid">
-                        <div class="field">
-                            <label for="f-front-select">Frente / Projeto *</label>
-                            <div class="lookup-wrap">
-                                <select id="f-front-select"></select>
-                                <button type="button" class="btn-lookup-add" id="btn-add-front" title="Nova frente">+</button>
-                            </div>
-                            <div class="lookup-add-row" id="add-front-row" hidden>
-                                <input type="text" id="f-front-new" placeholder="Nome da nova frente">
-                                <button type="button" class="btn-secondary btn-sm" id="btn-save-front">Salvar</button>
-                                <button type="button" class="btn-secondary btn-sm" id="btn-cancel-front">Cancelar</button>
-                            </div>
-                        </div>
+                    <div class="accordion" id="metadata-accordion">
+                        <div class="accordion-section is-open" data-section="front-sprint">
+                            <button type="button" class="accordion-header" aria-expanded="true">
+                                <span>1. Frente / Sprint</span>
+                                <span class="accordion-caret" aria-hidden="true">&#8964;</span>
+                            </button>
+                            <div class="accordion-body">
+                                <div class="form-grid">
+                                    <div class="field">
+                                        <label for="f-front-select">Frente / Projeto *</label>
+                                        <div class="lookup-wrap">
+                                            <select id="f-front-select"></select>
+                                            <button type="button" class="btn-lookup-add" id="btn-add-front" title="Nova frente">+</button>
+                                        </div>
+                                    </div>
 
-                        <div class="field">
-                            <label for="f-sprint-select">Sprint (opcional)</label>
-                            <div class="lookup-wrap">
-                                <select id="f-sprint-select" disabled></select>
-                                <button type="button" class="btn-lookup-add" id="btn-add-sprint" title="Nova sprint" disabled>+</button>
-                            </div>
-                            <div class="lookup-add-row" id="add-sprint-row" hidden>
-                                <input type="text" id="f-sprint-new" placeholder="Nome da nova sprint">
-                                <button type="button" class="btn-secondary btn-sm" id="btn-save-sprint">Salvar</button>
-                                <button type="button" class="btn-secondary btn-sm" id="btn-cancel-sprint">Cancelar</button>
-                            </div>
-                        </div>
+                                    <div class="field">
+                                        <label for="f-sprint-select">Sprint (opcional)</label>
+                                        <div class="lookup-wrap">
+                                            <select id="f-sprint-select" disabled></select>
+                                            <button type="button" class="btn-lookup-add" id="btn-add-sprint" title="Nova sprint" disabled>+</button>
+                                        </div>
+                                    </div>
 
-                        <div class="field field-full">
-                            <span>Importar metadados por commit</span>
-                            <div class="commit-import-grid">
-                                <div class="repo-path-wrap">
-                                    <input id="f-repo-path" type="text" placeholder="Caminho local do repositorio git (ex.: C:/repos/meu-repo)">
-                                    <select id="f-repo-select" title="Usar repositorio salvo">
-                                        <option value="">Repo salvo...</option>
-                                    </select>
+                                    <div class="field">
+                                        <label for="f-type-select">Cadastro de tipo (opcional)</label>
+                                        <div class="lookup-wrap">
+                                            <select id="f-type-select"></select>
+                                            <button type="button" class="btn-lookup-add" id="btn-add-type" title="Novo tipo">+</button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <input id="f-commit-hash" type="text" placeholder="Hash(s) do commit (ex.: a1b2c3d4 ou a1b2c3d4, e5f6g7h8)">
-                                <button type="button" id="btn-load-commit" class="btn-secondary">Buscar no commit</button>
-                            </div>
-                            <p class="field-hint">Busca os arquivos alterados nos commits informados e preenche a lista de metadados automaticamente.</p>
-                            <div id="commit-info" class="form-info" hidden></div>
-                        </div>
-
-                        <div id="bulk-fields" class="field field-full">
-                            <span>Metadatas do lote *</span>
-                            <div id="bulk-metadata-rows" class="bulk-rows"></div>
-                            <button type="button" id="btn-bulk-add-metadata" class="btn-secondary btn-sm">+ Adicionar metadata</button>
-                            <p class="field-hint">Cada linha define nome, tipo do metadata e tipo de mudanca usando o mesmo contexto e descricao.</p>
-
-                            <span>PRs do lote (opcional)</span>
-                            <div id="bulk-pr-rows" class="bulk-rows"></div>
-                            <button type="button" id="btn-bulk-add-pr" class="btn-secondary btn-sm">+ Adicionar PR</button>
-                            <p class="field-hint">Se informado, preencha label e link em cada PR para vincular nos metadatas do lote.</p>
-                        </div>
-
-                        <div class="field">
-                            <label for="f-type-select">Cadastro de tipo (opcional)</label>
-                            <div class="lookup-wrap">
-                                <select id="f-type-select"></select>
-                                <button type="button" class="btn-lookup-add" id="btn-add-type" title="Novo tipo">+</button>
-                            </div>
-                            <div class="lookup-add-row" id="add-type-row" hidden>
-                                <input type="text" id="f-type-new" placeholder="Nome do novo tipo de metadata">
-                                <button type="button" class="btn-secondary btn-sm" id="btn-save-type">Salvar</button>
-                                <button type="button" class="btn-secondary btn-sm" id="btn-cancel-type">Cancelar</button>
                             </div>
                         </div>
 
-                        <label class="field">
-                            <span>Ticket (opcional)</span>
-                            <input id="f-ticket" type="text" placeholder="Ex.: CHG-2481">
-                        </label>
+                        <div class="accordion-section" data-section="import">
+                            <button type="button" class="accordion-header" aria-expanded="false">
+                                <span>2. Importar metadados</span>
+                                <span class="accordion-caret" aria-hidden="true">&#8964;</span>
+                            </button>
+                            <div class="accordion-body" hidden>
+                                <div class="subtab-switcher" role="tablist" aria-label="Forma de importar">
+                                    <button type="button" class="subtab-switch is-active" id="subtab-btn-commit" role="tab" aria-selected="true">Por commit</button>
+                                    <button type="button" class="subtab-switch" id="subtab-btn-pr" role="tab" aria-selected="false">Por PR</button>
+                                </div>
 
-                        <label class="field field-full">
-                            <span>Descricao da alteracao *</span>
-                            <textarea id="f-description" rows="3" required placeholder="O que mudou e por que"></textarea>
-                        </label>
+                                <div id="subtab-pane-commit" class="subtab-pane">
+                                    <div class="field field-full">
+                                        <div class="commit-import-grid">
+                                            <div class="repo-path-wrap">
+                                                <input id="f-repo-path" type="text" placeholder="Caminho local do repositorio git (ex.: C:/repos/meu-repo)">
+                                                <select id="f-repo-select" title="Usar repositorio salvo">
+                                                    <option value="">Repo salvo...</option>
+                                                </select>
+                                            </div>
+                                            <input id="f-commit-hash" type="text" placeholder="Hash(s) do commit (ex.: a1b2c3d4 ou a1b2c3d4, e5f6g7h8)">
+                                            <button type="button" id="btn-load-commit" class="btn-secondary">Buscar no commit</button>
+                                        </div>
+                                        <p class="field-hint">Busca os arquivos alterados nos commits informados e preenche a lista de metadados automaticamente.</p>
+                                        <div id="commit-info" class="form-info" hidden></div>
+                                    </div>
+                                </div>
+
+                                <div id="subtab-pane-pr" class="subtab-pane" hidden>
+                                    <div class="field field-full">
+                                        <div class="commit-import-grid">
+                                            <input id="f-pr-ref" type="text" placeholder="Link da PR (ex.: https://github.com/org/repo/pull/8978) ou numero">
+                                            <select id="f-pr-repo-select" title="Repositorio da PR (necessario quando usar so o numero)">
+                                                <option value="">Repo salvo (para numero)...</option>
+                                            </select>
+                                            <button type="button" id="btn-load-pr" class="btn-secondary">Buscar PR</button>
+                                        </div>
+                                        <p class="field-hint">Busca os arquivos da PR via gh e preenche metadados, ticket, PR e descricao automaticamente.</p>
+                                        <div id="pr-info" class="form-info" hidden></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-section" data-section="bulk">
+                            <button type="button" class="accordion-header" aria-expanded="false">
+                                <span>3. Metadatas e PRs do lote</span>
+                                <span class="accordion-caret" aria-hidden="true">&#8964;</span>
+                            </button>
+                            <div class="accordion-body" hidden>
+                                <div id="bulk-fields" class="field field-full">
+                                    <span>Metadatas do lote *</span>
+                                    <div id="bulk-metadata-rows" class="bulk-rows"></div>
+                                    <button type="button" id="btn-bulk-add-metadata" class="btn-secondary btn-sm">+ Adicionar metadata</button>
+                                    <p class="field-hint">Cada linha define nome, tipo do metadata e tipo de mudanca usando o mesmo contexto e descricao.</p>
+
+                                    <span>PRs do lote (opcional)</span>
+                                    <div id="bulk-pr-rows" class="bulk-rows"></div>
+                                    <button type="button" id="btn-bulk-add-pr" class="btn-secondary btn-sm">+ Adicionar PR</button>
+                                    <p class="field-hint">Se informado, preencha label e link em cada PR para vincular nos metadatas do lote.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-section" data-section="ticket-description">
+                            <button type="button" class="accordion-header" aria-expanded="false">
+                                <span>4. Ticket e descricao</span>
+                                <span class="accordion-caret" aria-hidden="true">&#8964;</span>
+                            </button>
+                            <div class="accordion-body" hidden>
+                                <div class="form-grid">
+                                    <label class="field">
+                                        <span>Ticket (opcional)</span>
+                                        <input id="f-ticket" type="text" placeholder="Ex.: CHG-2481">
+                                    </label>
+
+                                    <label class="field field-full">
+                                        <span>Descricao da alteracao *</span>
+                                        <textarea id="f-description" rows="3" required placeholder="O que mudou e por que"></textarea>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="form-error" class="form-error" hidden></div>
@@ -342,6 +393,16 @@
                     <button type="button" id="btn-scan-clear-selection" class="btn-secondary btn-sm">Limpar selecao</button>
                     <button type="button" id="btn-use-all-commits" class="btn-primary btn-sm">Usar todos</button>
                     <button type="button" id="btn-use-selected-commits" class="btn-primary btn-sm">Usar selecionados</button>
+                    <button type="button" id="btn-generate-cherry-pick" class="btn-secondary btn-sm">Gerar cherry-pick selecionados</button>
+                </div>
+
+                <div id="scan-cherry-pick-wrap" class="scan-cherry-pick" hidden>
+                    <label for="scan-cherry-pick-output">Comando cherry-pick</label>
+                    <textarea id="scan-cherry-pick-output" class="scan-cherry-pick-output" rows="2" readonly placeholder="Selecione commits e gere o comando"></textarea>
+                    <div class="scan-cherry-pick-actions">
+                        <button type="button" id="btn-copy-cherry-pick" class="btn-secondary btn-sm">Copiar comando</button>
+                        <span id="scan-cherry-pick-info" class="scan-cherry-pick-info"></span>
+                    </div>
                 </div>
 
                 <div class="table-wrap">
@@ -569,6 +630,63 @@
         </section>
 
         <!-- Modal de Edição -->
+        <div id="add-front-row" class="modal" hidden>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Nova frente</h3>
+                    <button type="button" class="btn-modal-close" id="btn-cancel-front-x">&#10005;</button>
+                </div>
+                <div class="modal-body">
+                    <label class="field">
+                        <span>Nome da frente</span>
+                        <input type="text" id="f-front-new" placeholder="Nome da nova frente">
+                    </label>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-primary" id="btn-save-front">Salvar</button>
+                        <button type="button" class="btn-secondary" id="btn-cancel-front">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="add-sprint-row" class="modal" hidden>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Nova sprint</h3>
+                    <button type="button" class="btn-modal-close" id="btn-cancel-sprint-x">&#10005;</button>
+                </div>
+                <div class="modal-body">
+                    <label class="field">
+                        <span>Nome da sprint</span>
+                        <input type="text" id="f-sprint-new" placeholder="Nome da nova sprint">
+                    </label>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-primary" id="btn-save-sprint">Salvar</button>
+                        <button type="button" class="btn-secondary" id="btn-cancel-sprint">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="add-type-row" class="modal" hidden>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Novo tipo de metadata</h3>
+                    <button type="button" class="btn-modal-close" id="btn-cancel-type-x">&#10005;</button>
+                </div>
+                <div class="modal-body">
+                    <label class="field">
+                        <span>Nome do tipo</span>
+                        <input type="text" id="f-type-new" placeholder="Nome do novo tipo de metadata">
+                    </label>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-primary" id="btn-save-type">Salvar</button>
+                        <button type="button" class="btn-secondary" id="btn-cancel-type">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="edit-modal" class="modal" hidden>
             <div class="modal-content">
                 <div class="modal-header">

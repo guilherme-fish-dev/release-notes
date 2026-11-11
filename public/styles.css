@@ -96,6 +96,87 @@ body::before {
     white-space: nowrap;
 }
 
+.hero-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+}
+
+.gh-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-strong);
+    color: var(--muted);
+    padding: 7px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.gh-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+}
+
+.gh-status-badge.is-connected .gh-status-dot {
+    background: var(--primary);
+}
+
+.gh-status-badge.is-connected {
+    color: var(--primary-strong);
+    border-color: rgba(15, 107, 77, 0.3);
+}
+
+.gh-status-badge.is-disconnected .gh-status-dot {
+    background: var(--danger);
+}
+
+.gh-status-badge.is-disconnected {
+    color: var(--danger);
+    border-color: rgba(162, 40, 40, 0.3);
+}
+
+.gh-status-popover {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    z-index: 20;
+    max-width: 320px;
+    background: var(--surface-strong);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow);
+    padding: 12px 14px;
+    font-size: 0.84rem;
+    color: var(--text);
+}
+
+.gh-status-popover[hidden] {
+    display: none;
+}
+
+.gh-status-popover p {
+    margin: 0 0 10px;
+}
+
+.gh-status-popover .btn-sm {
+    width: 100%;
+}
+
+.gh-status-popover code {
+    background: var(--card-soft);
+    border-radius: 6px;
+    padding: 1px 6px;
+}
+
 .page-shell {
     position: relative;
     max-width: 1240px;
@@ -149,6 +230,7 @@ h1 {
 
 .tab-switcher {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 16px;
 }
@@ -160,6 +242,7 @@ h1 {
     color: var(--primary-strong);
     font-weight: 600;
     padding: 10px 16px;
+    white-space: nowrap;
 }
 
 .tab-switch.is-active {
@@ -170,6 +253,7 @@ h1 {
 
 .tab-pane {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 20px;
 }
 
@@ -309,6 +393,7 @@ button:hover {
 
 .items-list {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
 }
 
@@ -318,6 +403,7 @@ button:hover {
     background: var(--card-surface);
     padding: 14px;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
 }
 
@@ -333,9 +419,14 @@ button:hover {
     gap: 10px;
 }
 
+.item-top > div:first-child {
+    min-width: 0;
+}
+
 .item-title {
     font-family: "Sora", sans-serif;
     font-size: 1.08rem;
+    overflow-wrap: break-word;
 }
 
 .badges,
@@ -361,6 +452,7 @@ button:hover {
 .item-description {
     margin: 0;
     line-height: 1.55;
+    white-space: pre-line;
 }
 
 .item-actions {
@@ -643,6 +735,12 @@ button:hover {
     padding: 20px 28px;
 }
 
+.modal-body {
+    padding: 20px 28px;
+    display: grid;
+    gap: 16px;
+}
+
 .modal-actions {
     display: flex;
     gap: 12px;
@@ -677,6 +775,77 @@ button:hover {
 
 .commit-import-grid button {
     white-space: nowrap;
+}
+
+.accordion {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+}
+
+.accordion-section {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--card-surface);
+    overflow: hidden;
+}
+
+.accordion-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 14px 18px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: left;
+}
+
+.accordion-section.is-open .accordion-header {
+    color: var(--primary-strong);
+}
+
+.accordion-caret {
+    transition: transform 160ms ease;
+    color: var(--muted);
+}
+
+.accordion-section.is-open .accordion-caret {
+    transform: rotate(180deg);
+}
+
+.accordion-body {
+    padding: 0 18px 18px;
+}
+
+.subtab-switcher {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.subtab-switch {
+    border: 1px solid rgba(15, 107, 77, 0.22);
+    border-radius: 999px;
+    background: rgba(15, 107, 77, 0.08);
+    color: var(--primary-strong);
+    font-weight: 600;
+    font-size: 0.84rem;
+    padding: 7px 14px;
+}
+
+.subtab-switch.is-active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+    color: #f0fff8;
+    border-color: transparent;
+}
+
+.subtab-pane[hidden] {
+    display: none;
 }
 
 .lookup-wrap {
@@ -813,6 +982,46 @@ button:hover {
     gap: 8px;
     margin-bottom: 10px;
     flex-wrap: wrap;
+}
+
+.scan-cherry-pick {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    margin-bottom: 12px;
+    background: color-mix(in srgb, var(--surface) 84%, var(--surface-alt));
+}
+
+.scan-cherry-pick label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.scan-cherry-pick-output {
+    width: 100%;
+    resize: vertical;
+    min-height: 56px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 0.86rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    background: var(--surface-strong);
+    color: var(--text);
+}
+
+.scan-cherry-pick-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.scan-cherry-pick-info {
+    color: var(--muted);
+    font-size: 0.82rem;
 }
 
 #scan-person-select[multiple] {

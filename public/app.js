@@ -168,6 +168,11 @@
         btnScanClearSelection: document.getElementById('btn-scan-clear-selection'),
         btnUseAllCommits: document.getElementById('btn-use-all-commits'),
         btnUseSelectedCommits: document.getElementById('btn-use-selected-commits'),
+        btnGenerateCherryPick: document.getElementById('btn-generate-cherry-pick'),
+        scanCherryPickWrap: document.getElementById('scan-cherry-pick-wrap'),
+        scanCherryPickOutput: document.getElementById('scan-cherry-pick-output'),
+        btnCopyCherryPick: document.getElementById('btn-copy-cherry-pick'),
+        scanCherryPickInfo: document.getElementById('scan-cherry-pick-info'),
         // Author scan form
         authorScanForm: document.getElementById('author-scan-form'),
         authorScanRepoPath: document.getElementById('author-scan-repo-path'),
@@ -205,6 +210,7 @@
         fFrontNew:      document.getElementById('f-front-new'),
         btnSaveFront:   document.getElementById('btn-save-front'),
         btnCancelFront: document.getElementById('btn-cancel-front'),
+        btnCancelFrontX: document.getElementById('btn-cancel-front-x'),
         // Form lookups ÔÇö sprint
         sprintSelect:    document.getElementById('f-sprint-select'),
         addSprintRow:    document.getElementById('add-sprint-row'),
@@ -212,6 +218,7 @@
         fSprintNew:      document.getElementById('f-sprint-new'),
         btnSaveSprint:   document.getElementById('btn-save-sprint'),
         btnCancelSprint: document.getElementById('btn-cancel-sprint'),
+        btnCancelSprintX: document.getElementById('btn-cancel-sprint-x'),
         // Form lookups ÔÇö tipo
         typeSelect:    document.getElementById('f-type-select'),
         addTypeRow:    document.getElementById('add-type-row'),
@@ -219,6 +226,19 @@
         fTypeNew:      document.getElementById('f-type-new'),
         btnSaveType:   document.getElementById('btn-save-type'),
         btnCancelType: document.getElementById('btn-cancel-type'),
+        btnCancelTypeX: document.getElementById('btn-cancel-type-x'),
+        // Accordion e sub-abas de importacao
+        metadataAccordion: document.getElementById('metadata-accordion'),
+        subtabBtnCommit: document.getElementById('subtab-btn-commit'),
+        subtabBtnPr: document.getElementById('subtab-btn-pr'),
+        subtabPaneCommit: document.getElementById('subtab-pane-commit'),
+        subtabPanePr: document.getElementById('subtab-pane-pr'),
+        // Status do gh
+        ghStatusBadge: document.getElementById('gh-status-badge'),
+        ghStatusText: document.getElementById('gh-status-text'),
+        ghStatusPopover: document.getElementById('gh-status-popover'),
+        ghStatusMessage: document.getElementById('gh-status-message'),
+        btnGhLogin: document.getElementById('btn-gh-login'),
         // Form outros
         bulkMetadataRows: document.getElementById('bulk-metadata-rows'),
         bulkPrRows: document.getElementById('bulk-pr-rows'),
@@ -228,6 +248,10 @@
         fCommitHash:   document.getElementById('f-commit-hash'),
         btnLoadCommit: document.getElementById('btn-load-commit'),
         commitInfo:    document.getElementById('commit-info'),
+        fPrRef:        document.getElementById('f-pr-ref'),
+        fPrRepoSelect: document.getElementById('f-pr-repo-select'),
+        btnLoadPr:     document.getElementById('btn-load-pr'),
+        prInfo:        document.getElementById('pr-info'),
         fTicket:       document.getElementById('f-ticket'),
         fDescription:  document.getElementById('f-description'),
         formInfo: document.getElementById('form-info'),
@@ -318,7 +342,7 @@
         localStorage.setItem('release_notes_theme', safeTheme);
 
         if (el.btnThemeToggle) {
-            el.btnThemeToggle.textContent = safeTheme === 'dark' ? '­ƒöª Tema claro' : '­ƒöª Tema escuro';
+            el.btnThemeToggle.textContent = safeTheme === 'dark' ? '🔦 Tema claro' : '🔦 Tema escuro';
             el.btnThemeToggle.setAttribute('aria-label', safeTheme === 'dark' ? 'Alternar para tema claro' : 'Alternar para tema escuro');
             el.btnThemeToggle.setAttribute('title', safeTheme === 'dark' ? 'Alternar para tema claro' : 'Alternar para tema escuro');
         }
@@ -338,7 +362,10 @@
     function showError(msg, focusEl) {
         el.formError.hidden = false;
         el.formError.textContent = msg;
-        if (focusEl) focusEl.focus();
+        if (focusEl) {
+            expandSectionFor(focusEl);
+            focusEl.focus();
+        }
     }
 
     function hideError() {
@@ -368,6 +395,154 @@
         el.commitInfo.textContent = '';
         el.commitInfo.classList.remove('form-error');
         el.commitInfo.classList.add('form-info');
+    }
+
+    function showPrInfo(message, isError) {
+        el.prInfo.hidden = false;
+        el.prInfo.textContent = message;
+        el.prInfo.classList.toggle('form-error', Boolean(isError));
+        el.prInfo.classList.toggle('form-info', !isError);
+    }
+
+    function hidePrInfo() {
+        el.prInfo.hidden = true;
+        el.prInfo.textContent = '';
+        el.prInfo.classList.remove('form-error');
+        el.prInfo.classList.add('form-info');
+    }
+
+    // ── Accordion (Novo item de release) ────────────────────────────────────────
+    function openAccordionSection(sectionKey) {
+        if (!el.metadataAccordion) return;
+        el.metadataAccordion.querySelectorAll('.accordion-section').forEach(function(section) {
+            const isOpen = section.dataset.section === sectionKey;
+            section.classList.toggle('is-open', isOpen);
+            const header = section.querySelector('.accordion-header');
+            const body = section.querySelector('.accordion-body');
+            if (header) header.setAttribute('aria-expanded', String(isOpen));
+            if (body) body.hidden = !isOpen;
+        });
+    }
+
+    function expandSectionFor(element) {
+        if (!element || typeof element.closest !== 'function') return;
+        const section = element.closest('.accordion-section');
+        if (section && section.dataset.section) {
+            openAccordionSection(section.dataset.section);
+        }
+    }
+
+    function initAccordion() {
+        if (!el.metadataAccordion) return;
+        el.metadataAccordion.querySelectorAll('.accordion-header').forEach(function(header) {
+            header.addEventListener('click', function() {
+                const section = header.closest('.accordion-section');
+                if (section) openAccordionSection(section.dataset.section);
+            });
+        });
+    }
+
+    // ── Sub-abas de importacao (commit / PR) ────────────────────────────────────
+    function setActiveImportSubtab(subtab) {
+        const isCommit = subtab === 'commit';
+        el.subtabBtnCommit.classList.toggle('is-active', isCommit);
+        el.subtabBtnCommit.setAttribute('aria-selected', String(isCommit));
+        el.subtabBtnPr.classList.toggle('is-active', !isCommit);
+        el.subtabBtnPr.setAttribute('aria-selected', String(!isCommit));
+        el.subtabPaneCommit.hidden = !isCommit;
+        el.subtabPanePr.hidden = isCommit;
+    }
+
+    function initImportSubtabs() {
+        el.subtabBtnCommit.addEventListener('click', function() { setActiveImportSubtab('commit'); });
+        el.subtabBtnPr.addEventListener('click', function() { setActiveImportSubtab('pr'); });
+    }
+
+    // ── Status do gh ─────────────────────────────────────────────────────────────
+    function renderGhStatus(status) {
+        const connected = Boolean(status && status.connected);
+        el.ghStatusBadge.classList.remove('is-unknown', 'is-connected', 'is-disconnected');
+        el.ghStatusBadge.classList.add(connected ? 'is-connected' : 'is-disconnected');
+        el.ghStatusText.textContent = connected
+            ? ('gh: ' + (status.username || 'conectado'))
+            : 'gh: desconectado';
+
+        el.ghStatusMessage.innerHTML = connected
+            ? ('Conectado como <strong>' + escapeHtml(status.username || '') + '</strong>. Para trocar de conta, rode <code>gh auth login</code> no terminal.')
+            : 'O gh (GitHub CLI) nao esta autenticado.';
+
+        el.btnGhLogin.hidden = connected;
+        if (connected) stopGhLoginPolling();
+    }
+
+    async function loadGhStatus() {
+        try {
+            const status = await api.get('/api/gh-status');
+            renderGhStatus(status);
+        } catch (e) {
+            renderGhStatus({ connected: false });
+        }
+    }
+
+    let ghLoginPollTimer = null;
+
+    function stopGhLoginPolling() {
+        if (ghLoginPollTimer) {
+            clearInterval(ghLoginPollTimer);
+            ghLoginPollTimer = null;
+        }
+    }
+
+    function startGhLoginPolling() {
+        stopGhLoginPolling();
+        let attempts = 0;
+        ghLoginPollTimer = setInterval(async function() {
+            attempts += 1;
+            const status = await api.get('/api/gh-status').catch(function() { return { connected: false }; });
+            if (status.connected) {
+                renderGhStatus(status);
+                return;
+            }
+            if (attempts >= 40) {
+                stopGhLoginPolling();
+            }
+        }, 3000);
+    }
+
+    async function startGhLogin() {
+        el.btnGhLogin.disabled = true;
+        el.ghStatusMessage.textContent = 'Iniciando login...';
+        try {
+            const result = await api.post('/api/gh-login', {});
+            if (result.status === 'error') {
+                el.ghStatusMessage.textContent = 'Erro ao iniciar login: ' + (result.error || 'erro desconhecido');
+                return;
+            }
+            el.ghStatusMessage.innerHTML = result.code
+                ? ('Codigo: <strong>' + escapeHtml(result.code) + '</strong>. Confirme no navegador que abriu (ou acesse <code>github.com/login/device</code>).')
+                : 'Login iniciado. Verifique se uma janela do navegador abriu para confirmar.';
+            startGhLoginPolling();
+        } catch (e) {
+            el.ghStatusMessage.textContent = 'Erro ao iniciar login: ' + e.message;
+        } finally {
+            el.btnGhLogin.disabled = false;
+        }
+    }
+
+    function initGhStatusBadge() {
+        el.ghStatusBadge.addEventListener('click', function() {
+            el.ghStatusPopover.hidden = !el.ghStatusPopover.hidden;
+        });
+        el.btnGhLogin.addEventListener('click', function(e) {
+            e.stopPropagation();
+            startGhLogin();
+        });
+        document.addEventListener('click', function(e) {
+            if (el.ghStatusPopover.hidden) return;
+            if (e.target === el.ghStatusBadge || el.ghStatusBadge.contains(e.target)) return;
+            if (e.target === el.ghStatusPopover || el.ghStatusPopover.contains(e.target)) return;
+            el.ghStatusPopover.hidden = true;
+        });
     }
 
     function hidePeopleFeedback() {
@@ -736,6 +911,15 @@
             });
             el.scanPrsRepoSelect.innerHTML = prOpts.join('');
         }
+
+        // Importar por PR tambem usa id do repo (necessario quando so o numero e informado)
+        if (el.fPrRepoSelect) {
+            const prRefOpts = ['<option value="">Repo salvo (para numero)...</option>'];
+            state.repos.forEach(function(repo) {
+                prRefOpts.push('<option value="' + escapeHtml(String(repo.id)) + '">' + escapeHtml(repo.name) + '</option>');
+            });
+            el.fPrRepoSelect.innerHTML = prRefOpts.join('');
+        }
     }
 
     function isEmailInPeople(email) {
@@ -1004,7 +1188,7 @@
         } else {
             const fronts  = new Set(state.items.map(function(i) { return i.front;  })).size;
             const sprints = new Set(state.items.map(function(i) { return i.sprint; })).size;
-            el.releaseMeta.textContent = 'Escopo atual: ' + scopeText + ' ÔÇó ' + state.items.length + ' itens em ' + fronts + ' frente(s) e ' + sprints + ' sprint(s).';
+            el.releaseMeta.textContent = 'Escopo atual: ' + scopeText + ' • ' + state.items.length + ' itens em ' + fronts + ' frente(s) e ' + sprints + ' sprint(s).';
         }
     }
 
@@ -1234,6 +1418,7 @@
             });
 
             localStorage.setItem('release_notes_repo_path', repoPath);
+            if (addedRows > 0) openAccordionSection('bulk');
             showCommitInfo(
                 'Commit(s) lido(s) com sucesso: ' + (payload.commit_hash || commitHashes.join(', ')) + '. ' +
                 String(payload.total_files || 0) + ' arquivo(s), ' + String(addedRows) + ' metadata(s) adicionado(s).',
@@ -1244,6 +1429,110 @@
         } finally {
             el.btnLoadCommit.disabled = false;
             el.btnLoadCommit.textContent = previousButtonText;
+        }
+    }
+
+    function hasOnlyEmptyBulkPrRow() {
+        const rows = el.bulkPrRows.querySelectorAll('.bulk-pr-row');
+        if (rows.length !== 1) return false;
+        const onlyRow = rows[0];
+        const label = (onlyRow.querySelector('.bulk-pr-label-input')?.value || '').trim();
+        const url = (onlyRow.querySelector('.bulk-pr-url-input')?.value || '').trim();
+        return !label && !url;
+    }
+
+    async function loadMetadataFromPr() {
+        hidePrInfo();
+        const prRef = el.fPrRef.value.trim();
+        const repoId = el.fPrRepoSelect ? el.fPrRepoSelect.value.trim() : '';
+
+        if (!prRef) {
+            showPrInfo('Informe o link ou numero da PR.', true);
+            el.fPrRef.focus();
+            return;
+        }
+
+        const isBareNumber = /^\d+$/.test(prRef);
+        if (isBareNumber && !repoId) {
+            showPrInfo('Selecione o repositorio salvo para buscar por numero.', true);
+            return;
+        }
+
+        el.btnLoadPr.disabled = true;
+        const previousButtonText = el.btnLoadPr.textContent;
+        el.btnLoadPr.textContent = 'Buscando...';
+
+        try {
+            const payload = isBareNumber
+                ? await api.post('/api/metadata-from-pr', { repo_id: Number(repoId), pr_number: Number(prRef) })
+                : await api.post('/api/metadata-from-pr', { pr_url: prRef });
+
+            const metadataItems = Array.isArray(payload.metadatas) ? payload.metadatas : [];
+
+            if (metadataItems.length > 0) {
+                for (const item of metadataItems) {
+                    await ensureMetadataTypeExists(item.type);
+                }
+                await loadMetadataTypes();
+
+                if (hasOnlyEmptyBulkMetadataRow()) {
+                    el.bulkMetadataRows.innerHTML = '';
+                }
+
+                metadataItems.forEach(function(item) {
+                    const typeId = findMetadataTypeIdByName(item.type);
+                    const row = createBulkMetadataRow({
+                        name: item.name,
+                        typeId: typeId,
+                        changeType: item.change_type
+                    });
+                    el.bulkMetadataRows.appendChild(row);
+                });
+            }
+
+            if (hasOnlyEmptyBulkPrRow()) {
+                el.bulkPrRows.innerHTML = '';
+            }
+            const prLabel = (payload.suggested && payload.suggested.pr_label) || '';
+            el.bulkPrRows.appendChild(createBulkPrRow(prLabel, payload.pr.url));
+            if (metadataItems.length > 0) openAccordionSection('bulk');
+
+            if (payload.suggested && payload.suggested.ticket) {
+                el.fTicket.value = payload.suggested.ticket;
+            }
+            if (payload.suggested && payload.suggested.description) {
+                el.fDescription.value = payload.suggested.description;
+            }
+
+            const warnings = [];
+            if (metadataItems.length === 0) {
+                warnings.push('Nenhum metadata em force-app/ identificado nessa PR.');
+            }
+            if (Array.isArray(payload.ignored_files) && payload.ignored_files.length) {
+                warnings.push(payload.ignored_files.length + ' arquivo(s) fora de force-app/ ignorado(s).');
+            }
+            if (payload.pr && payload.pr.state !== 'MERGED') {
+                warnings.push('PR ainda nao mergeada.');
+            }
+            if (payload.already_imported) {
+                warnings.push('Atencao: esta PR ja esta vinculada a um metadata cadastrado.');
+            }
+            const ticketCandidates = (payload.suggested && payload.suggested.ticket_candidates) || [];
+            if (ticketCandidates.length > 1) {
+                warnings.push('Outros tickets encontrados: ' + ticketCandidates.slice(1).join(', ') + '.');
+            }
+
+            showPrInfo(
+                'PR #' + payload.pr.number + ' lida com sucesso. ' +
+                metadataItems.length + ' metadata(s) adicionado(s).' +
+                (warnings.length ? ' ' + warnings.join(' ') : ''),
+                false
+            );
+        } catch (e) {
+            showPrInfo('Erro ao buscar PR: ' + e.message, true);
+        } finally {
+            el.btnLoadPr.disabled = false;
+            el.btnLoadPr.textContent = previousButtonText;
         }
     }
 
@@ -1398,6 +1687,7 @@
 
         if (state.scanResults.length === 0) {
             el.scanResultsBody.innerHTML = '';
+            setCherryPickCommand('', 0);
             return;
         }
 
@@ -1433,6 +1723,7 @@
                 state.scanSelectedCommits = Array.from(selected).map(function(item) {
                     return String(item.dataset.scanHash || '');
                 }).filter(Boolean);
+                setCherryPickCommand('', 0);
             });
         });
     }
@@ -1447,6 +1738,52 @@
     function clearScannedCommitSelection() {
         state.scanSelectedCommits = [];
         renderScanResults();
+    }
+
+    function getSelectedScannedCommitHashes() {
+        const selectedSet = new Set(state.scanSelectedCommits);
+        return state.scanResults
+            .map(function(commit) {
+                return String(commit && commit.hash || '').trim();
+            })
+            .filter(function(hash) {
+                return selectedSet.has(hash);
+            });
+    }
+
+    function buildCherryPickCommand(selectedHashes) {
+        if (!Array.isArray(selectedHashes) || selectedHashes.length === 0) {
+            return '';
+        }
+        return 'git cherry-pick ' + selectedHashes.join(' ');
+    }
+
+    function setCherryPickCommand(commandText, commitCount) {
+        if (!el.scanCherryPickWrap || !el.scanCherryPickOutput || !el.scanCherryPickInfo) {
+            return;
+        }
+
+        const hasCommand = Boolean(commandText);
+        el.scanCherryPickWrap.hidden = !hasCommand;
+        el.scanCherryPickOutput.value = commandText || '';
+        el.scanCherryPickInfo.textContent = hasCommand
+            ? commitCount + ' commit(s) selecionado(s).'
+            : '';
+    }
+
+    function generateCherryPickForSelection() {
+        el.scanError.hidden = true;
+        el.scanError.textContent = '';
+
+        const selectedHashes = getSelectedScannedCommitHashes();
+        if (selectedHashes.length === 0) {
+            el.scanError.hidden = false;
+            el.scanError.textContent = 'Selecione ao menos um commit para gerar o cherry-pick.';
+            setCherryPickCommand('', 0);
+            return;
+        }
+
+        setCherryPickCommand(buildCherryPickCommand(selectedHashes), selectedHashes.length);
     }
 
     async function importMetadataFromScanCommits(commits) {
@@ -1590,6 +1927,10 @@
 
     // ÔöÇÔöÇ Eventos ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     function bindEvents() {
+        initAccordion();
+        initImportSubtabs();
+        initGhStatusBadge();
+
         el.tabBtnMetadata.addEventListener('click', function() { setActiveTab('metadata'); });
         el.tabBtnRelease.addEventListener('click', function() { setActiveTab('release'); });
         el.tabBtnCommits.addEventListener('click', function() { setActiveTab('commits'); });
@@ -1618,6 +1959,24 @@
         if (el.btnUseSelectedCommits) {
             el.btnUseSelectedCommits.addEventListener('click', function() {
                 useSelectedCommits();
+            });
+        }
+        if (el.btnGenerateCherryPick) {
+            el.btnGenerateCherryPick.addEventListener('click', function() {
+                generateCherryPickForSelection();
+            });
+        }
+        if (el.btnCopyCherryPick) {
+            el.btnCopyCherryPick.addEventListener('click', function() {
+                const commandText = (el.scanCherryPickOutput && el.scanCherryPickOutput.value || '').trim();
+                if (!commandText) {
+                    return;
+                }
+                navigator.clipboard.writeText(commandText).then(function() {
+                    if (el.scanCherryPickInfo) {
+                        el.scanCherryPickInfo.textContent = 'Comando copiado.';
+                    }
+                });
             });
         }
 
@@ -1774,6 +2133,17 @@
             }
         });
 
+        el.btnLoadPr.addEventListener('click', function() {
+            loadMetadataFromPr();
+        });
+
+        el.fPrRef.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loadMetadataFromPr();
+            }
+        });
+
         el.fRepoPath.addEventListener('blur', function() {
             const repoPath = el.fRepoPath.value.trim();
             if (repoPath) {
@@ -1836,6 +2206,10 @@
                 } catch (e) { showError('Erro ao salvar tipo: ' + e.message); }
             }
         );
+
+        if (el.btnCancelFrontX) el.btnCancelFrontX.addEventListener('click', function() { closeAddRow(el.addFrontRow); });
+        if (el.btnCancelSprintX) el.btnCancelSprintX.addEventListener('click', function() { closeAddRow(el.addSprintRow); });
+        if (el.btnCancelTypeX) el.btnCancelTypeX.addEventListener('click', function() { closeAddRow(el.addTypeRow); });
 
         // Filtros
         el.filterFront.addEventListener('change', async function() {
@@ -1925,7 +2299,26 @@
         el.btnExportMd.addEventListener('click', function() { triggerExport('md'); });
     }
 
+    function hasActiveMetadataFilter() {
+        return Boolean(
+            metadataFilterState.frontId ||
+            metadataFilterState.sprintId ||
+            metadataFilterState.typeId ||
+            metadataFilterState.search
+        );
+    }
+
     function applyMetadataFilters() {
+        if (!hasActiveMetadataFilter()) {
+            el.itemsList.innerHTML = '';
+            el.countLabel.textContent = '0 itens';
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+            empty.textContent = 'Use os filtros acima para ver os itens cadastrados.';
+            el.itemsList.appendChild(empty);
+            return;
+        }
+
         const filtered = state.items.filter(function(item) {
             if (metadataFilterState.frontId && String(item.front_id) !== metadataFilterState.frontId) return false;
             if (metadataFilterState.sprintId && String(item.sprint_id) !== metadataFilterState.sprintId) return false;
@@ -1959,7 +2352,7 @@
                 '<div class="item-top">',
                 '  <div>',
                 '    <h3 class="item-title">' + escapeHtml(item.metadata_name) + '</h3>',
-                '    <div class="item-meta"><span>' + escapeHtml(item.front) + '</span><span>ÔÇó</span><span>' + escapeHtml(item.sprint) + '</span></div>',
+                '    <div class="item-meta"><span>' + escapeHtml(item.front) + '</span><span>•</span><span>' + escapeHtml(item.sprint) + '</span></div>',
                 '  </div>',
                 '  <div class="badges">',
                 '    <span class="badge">' + escapeHtml(item.metadata_type) + '</span>',
@@ -1968,7 +2361,7 @@
                 '</div>',
                 '<p class="item-description">' + escapeHtml(item.description) + '</p>',
                 '<div class="item-meta">',
-                '  <span>Ticket: ' + escapeHtml(item.ticket || '-') + '</span><span>ÔÇó</span>',
+                '  <span>Ticket: ' + escapeHtml(item.ticket || '-') + '</span><span>•</span>',
                 '  <span>' + escapeHtml(formatDateTime(item.created_at)) + '</span>',
                 '</div>',
                 // PRs
@@ -2561,6 +2954,7 @@
         bindEvents();
         initPrBranchSearch();
         initScanPrs();
+        loadGhStatus();
         await loadItems();
     }
 

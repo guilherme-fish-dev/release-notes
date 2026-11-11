@@ -19,6 +19,9 @@ test('scan form renders multi-select people control and batch actions', function
     assert.match(html, /id="btn-use-selected-commits"/);
     assert.match(html, /id="btn-scan-select-all"/);
     assert.match(html, /id="btn-scan-clear-selection"/);
+    assert.match(html, /id="btn-generate-cherry-pick"/);
+    assert.match(html, /id="scan-cherry-pick-output"/);
+    assert.match(html, /id="btn-copy-cherry-pick"/);
 });
 
 test('scan app parses selected people and manual emails into batch author list', function() {
@@ -28,6 +31,8 @@ test('scan app parses selected people and manual emails into batch author list',
     assert.match(appJs, /function getSelectedAuthorEmails\(\)/);
     assert.match(appJs, /author_emails:\s*authorEmails/);
     assert.match(appJs, /function useAllCommits\(\)/);
+    assert.match(appJs, /function buildCherryPickCommand\(selectedHashes\)/);
+    assert.match(appJs, /function generateCherryPickForSelection\(\)/);
 });
 
 test('scan-pr UI includes front, target branches and date window controls', function() {
