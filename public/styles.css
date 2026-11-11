@@ -230,6 +230,7 @@ h1 {
 
 .tab-switcher {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 16px;
 }
@@ -241,6 +242,7 @@ h1 {
     color: var(--primary-strong);
     font-weight: 600;
     padding: 10px 16px;
+    white-space: nowrap;
 }
 
 .tab-switch.is-active {
@@ -251,6 +253,7 @@ h1 {
 
 .tab-pane {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 20px;
 }
 
@@ -390,6 +393,7 @@ button:hover {
 
 .items-list {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
 }
 
@@ -399,6 +403,7 @@ button:hover {
     background: var(--card-surface);
     padding: 14px;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
 }
 
@@ -414,9 +419,14 @@ button:hover {
     gap: 10px;
 }
 
+.item-top > div:first-child {
+    min-width: 0;
+}
+
 .item-title {
     font-family: "Sora", sans-serif;
     font-size: 1.08rem;
+    overflow-wrap: break-word;
 }
 
 .badges,
@@ -768,6 +778,7 @@ button:hover {
 
 .accordion {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
 }
 
