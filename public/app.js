@@ -2299,7 +2299,26 @@
         el.btnExportMd.addEventListener('click', function() { triggerExport('md'); });
     }
 
+    function hasActiveMetadataFilter() {
+        return Boolean(
+            metadataFilterState.frontId ||
+            metadataFilterState.sprintId ||
+            metadataFilterState.typeId ||
+            metadataFilterState.search
+        );
+    }
+
     function applyMetadataFilters() {
+        if (!hasActiveMetadataFilter()) {
+            el.itemsList.innerHTML = '';
+            el.countLabel.textContent = '0 itens';
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+            empty.textContent = 'Use os filtros acima para ver os itens cadastrados.';
+            el.itemsList.appendChild(empty);
+            return;
+        }
+
         const filtered = state.items.filter(function(item) {
             if (metadataFilterState.frontId && String(item.front_id) !== metadataFilterState.frontId) return false;
             if (metadataFilterState.sprintId && String(item.sprint_id) !== metadataFilterState.sprintId) return false;
